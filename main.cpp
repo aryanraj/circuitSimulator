@@ -54,7 +54,7 @@ public:
 	connection* getConnectionTo(node*);
 	connection* getNextConnection();
 	int getSelfNum();
-	void resetCounter();
+	void resetConnectionCounter();
 };
 
 class connection
@@ -62,7 +62,7 @@ class connection
 private:
 	node *fromNode;
 	node *toNode;
-	int traversed;
+	bool traversed;
 	polarNum impedence;
 	polarNum voltage;
 	polarNum current;
@@ -72,7 +72,6 @@ public:
 	void setDetails(node*,node* /*,polarNum,polarNum,polarNum*/);
 	void printData();
 	void setTraversed();
-	void setUntraversed();
 	bool isTraversed();
 	node* getOtherNode(node*);
 };
@@ -82,17 +81,21 @@ struct currentPath
 	node *through;
 	connection *from;
 	connection *to;
-	currentPath *prev;
 	currentPath *next;
-	currentPath *suppose;
+	currentPath *supposeNext;
 	static int pathCountActual;
 	static int pathCountSuppose;
 	currentPath(node*,currentPath*);
 	static currentPath* make(node*,currentPath*);
 	static currentPath* start;
 	static currentPath* startNewTraversePath(node*);
-	currentPath* getNextNode();
+	bool getNextNode();
+	void solidifyPath();
+	void convertSupposeToActual();
 	bool hasOccured(node*);
+	~currentPath();
+	static void printActualCurrentPath();
+	static void printSupposeCurrentPath();
 };
 
 node::node()
@@ -115,7 +118,7 @@ void node::addConnectionDetails(connection *_new)
 		connectionCounter = 0;
 }
 
-void node::resetCounter()
+void node::resetConnectionCounter()
 {
 	connectionCounter = 0;
 }
@@ -156,7 +159,7 @@ int node::getSelfNum()
 
 connection::connection()
 {
-	traversed = 0;
+	traversed = false;
 }
 
 void connection::setDetails(node *prev, node *next/*,polarNum imp = 0,polarNum volt = 0,polarNum cur = 0*/)
@@ -175,17 +178,13 @@ void connection::printData()
 
 void connection::setTraversed()
 {
-	this->traversed++;
+	this->traversed=true;
 }
 
-void connection::setUntraversed()
-{
-	this->traversed--;
-}
 
 bool connection::isTraversed()
 {
-	return this->traversed==0?false:true;
+	return this->traversed;
 }
 
 node* connection::getOtherNode(node* _node)
@@ -197,19 +196,26 @@ currentPath* currentPath::start = NULL;
 int currentPath::pathCountActual = 0;
 int currentPath::pathCountSuppose = 0;
 
+currentPath::~currentPath()
+{
+	if(this->next!=NULL)
+		delete this->next;
+}
+
 currentPath::currentPath(node* _through,currentPath* _prev)
 {
 	this->through = _through;
-	this->prev = _prev;
+	this->supposeNext = NULL;
+	this->next = NULL;
 	if(_prev == NULL)
 	{
 		start = this;
 		pathCountActual = 0;
-		pathCountSuppose = 0;
+		pathCountSuppose = 1;
 	}
 	else
 	{
-		_prev->next = this;
+		_prev->supposeNext = this;
 		this->from = _prev->to;
 	}
 }
@@ -221,65 +227,125 @@ currentPath* currentPath::make(node* _through,currentPath* _prev = NULL)
 
 bool currentPath::hasOccured(node* _node)
 {
-	currentPath *temp = this;
-	while(temp!=NULL){
+	currentPath *temp = start;
+	while(temp!=this){
 		if(temp->through == _node)
 			return true;
-		temp = temp->prev;
+		temp = temp->supposeNext;
 	}
 	return false;
 }
 
-currentPath* currentPath::getNextNode()
+void currentPath::printActualCurrentPath()
 {
-	connection* temp;
-	currentPath* curTemp;
-	//cout<<this->through->getSelfNum()<<" > ";
+	currentPath* temp = start;
+	cout<<"current Path : \n";
+	while(temp!=NULL)
+	{
+		cout<<temp->through->getSelfNum()+1<<" > ";
+		temp = temp->next;
+	}
+	cout<<endl<<endl;
+}
+
+void currentPath::printSupposeCurrentPath()
+{
+	currentPath* temp = start;
+	cout<<"current Path : \n";
+	while(temp!=NULL)
+	{
+		cout<<temp->through->getSelfNum()+1<<" > ";
+		temp = temp->supposeNext;
+	}
+	cout<<endl<<endl;
+}
+
+void currentPath::convertSupposeToActual()
+{
+	currentPath* temp=start;
+	while(temp->supposeNext == temp->next){
+		temp = temp->next;
+	}
+	if(temp->next!=NULL)
+		delete temp->next;
+	temp->next = temp->supposeNext;
+	while(temp->supposeNext!=NULL){
+		temp->next = temp->supposeNext;
+		temp = temp->next;
+	}
+	pathCountActual = pathCountSuppose;
+}
+
+void currentPath::solidifyPath()
+{
+	printActualCurrentPath();
+	currentPath* temp = start;
+	while(temp->next!=NULL)
+	{
+		temp->to = temp->through->getConnectionTo(temp->next->through);
+		temp->to->setTraversed();
+		temp = temp->next;
+	}
+	temp->to = temp->through->getConnectionTo(start->through);
+	temp->to->setTraversed();
+	temp->next = start;
+	start->from = temp->to;
+}
+
+bool currentPath::getNextNode()
+{
+	connection *temp;
+	if( pathCountSuppose > pathCountActual && pathCountActual != 0)
+	{
+		pathCountSuppose--;
+		return false;
+	}
 	if(this==start)
 	{
-		if((temp=this->through->getNotTraversedConnection())!=NULL)
-		{
-			this->to = temp;
-			temp->setTraversed();
-			return currentPath::make(temp->getOtherNode(this->through),this)->getNextNode();
-		}
+		pathCountSuppose++;
+		if(currentPath::make(this->through->getNotTraversedConnection()->getOtherNode(this->through),this)->getNextNode())
+			return true;
 		else
-		{
-			return NULL;
-		}
+			return false;
 	}
-	if(this->prev->through != start->through &&(temp=this->through->getConnectionTo(start->through))!=NULL)
+	if(pathCountSuppose > 2 && (temp=this->through->getConnectionTo(start->through))!=NULL)
 	{
-		this->to = temp;
-		temp->setTraversed();
-		this->next = start;
-		start->prev = this;
-		return start;
+		convertSupposeToActual();
+		pathCountSuppose--;
+		return true;
 	}
-	this->through->resetCounter();
+	this->through->resetConnectionCounter();
 	while((temp=this->through->getNextConnection())!=NULL)
 	{
 		if(!hasOccured(temp->getOtherNode(this->through)))
 		{
-			this->to = temp;
-			temp->setTraversed();
-			curTemp = currentPath::make(temp->getOtherNode(this->through),this)->getNextNode();
-			if(curTemp == NULL){
-				this->to = NULL;
-				temp->setUntraversed();
-				delete this->next;
+			pathCountSuppose++;
+			if(!currentPath::make(temp->getOtherNode(this->through),this)->getNextNode())
+			{
+				delete this->supposeNext;
+				this->supposeNext = NULL;
 			}
-			else
-				return curTemp;
 		}
 	}
-	return NULL;
+	pathCountSuppose--;
+	return true;
 }
 
 
 currentPath* currentPath::startNewTraversePath(node* _start)
 {
-	return currentPath::make(_start)->getNextNode();
+	if(_start->getNotTraversedConnection()==NULL)
+		return NULL;
+	if(currentPath::make(_start)->getNextNode())
+	{
+		start->solidifyPath();
+		return start;
+	}
+	else
+	{
+		delete start;
+		return NULL;
+	}
 }
 
 polarNum polarParse(float a, float b)
@@ -323,18 +389,18 @@ int main()
 		nodes[nodeA-1].addConnectionDetails(&connections[i]);
 		nodes[nodeB-1].addConnectionDetails(&connections[i]);
 	}
-
 	for (int i = 0; i < nodeCount; ++i)
 	{
 		while((one = currentPath::startNewTraversePath(&nodes[i]))!=NULL)
 		{
+			cout<<"final path:";
 			two = one;
 			do
 			{
 				cout<<two->through->getSelfNum()+1<<" > ";
 				two = two->next;
 			} while (two!=one);
-			cout<<two->through->getSelfNum()+1<<endl;
+			cout<<two->through->getSelfNum()+1<<endl<<endl;
 		}
 	}
 
