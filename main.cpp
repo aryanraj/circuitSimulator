@@ -13,27 +13,57 @@ struct polarNum
 {
 	float l;
 	float a;
-	polarNum operator+(polarNum &b)
+	polarNum operator+(polarNum b)
 	{
 		return polarParse(this->l*cos(this->a)+b.l*cos(b.a),this->l*sin(this->a)+b.l*sin(b.a));
 	}
-	polarNum operator-(polarNum &b)
+	polarNum operator-(polarNum b)
 	{
 		return polarParse(this->l*cos(this->a)-b.l*cos(b.a),this->l*sin(this->a)-b.l*sin(b.a));
 	}
-	polarNum operator/(polarNum &b)
+	polarNum operator/(polarNum b)
 	{
 		polarNum temp;
 		temp.l = this->l/b.l;
 		temp.a = this->a-b.a;
 		return temp;
 	}
-	polarNum operator*(polarNum &b)
+	polarNum operator*(polarNum b)
 	{
 		polarNum temp;
 		temp.l = this->l*b.l;
 		temp.a = this->a+b.a;
 		return temp;
+	}
+	polarNum operator=(double b)
+	{
+		this->l = b;
+		this->a = 0;
+		return *this;
+	}
+	bool operator==(polarNum b)
+	{
+		if(this->l==b.l && this->a == b.a)
+			return true;
+		return false;
+	}
+	bool operator!=(polarNum b)
+	{
+		if(this->l==b.l && this->a == b.a)
+			return false;
+		return true;
+	}
+	bool operator==(double b)
+	{
+		if(this->l==b)
+			return true;
+		return false;
+	}
+	bool operator!=(double b)
+	{
+		if(this->l==b)
+			return false;
+		return true;
 	}
 };
 
@@ -96,6 +126,98 @@ struct currentPath
 	~currentPath();
 	static void printActualCurrentPath();
 	static void printSupposeCurrentPath();
+};
+
+class matrixSolver
+{
+private:
+	polarNum **matA;
+	int variableCount;
+	int matrixCounter;
+public:
+	matrixSolver(int nVar)
+	{
+		variableCount = nVar;
+		matrixCounter = 0;
+		matA = new polarNum*[nVar];
+		for (int i = 0; i < nVar; ++i)
+		{
+			matA[i] = new polarNum[nVar+1];
+		}
+	}
+	void printMatrix()
+	{
+		cout<<"\nprinting matrix\n";
+		for (int i = 0; i < variableCount; ++i)
+		{
+			for (int j = 0; j < variableCount+1; ++j)
+			{
+				cout<<matA[i][j].l<<" ";
+			}
+			cout<<endl;
+		}
+	}
+	void addEquations(double *row)
+	{
+		for (int i = 0; i < variableCount+1; ++i)
+		{
+			matA[matrixCounter][i] = row[i];
+		}
+		matrixCounter++;
+	}
+	void addEquations(polarNum *row)
+	{
+		for (int i = 0; i < variableCount+1; ++i)
+		{
+			matA[matrixCounter][i] = row[i];
+		}
+		matrixCounter++;
+	}
+	void solve()
+	{
+		for (int i = 0; i < variableCount; ++i)
+		{
+			if(matA[i][i] == 0)
+			{
+				int j;
+				for (j = i; j < variableCount; ++j)
+				{
+					if(matA[j][i]!=0)
+						break;
+				}
+				if(j==variableCount && matA[i][variableCount]==0)
+				{
+					cout<<"Infinite Solutions are possible";
+					break;
+				}
+				if(j==variableCount && matA[i][variableCount]!=0)
+				{
+					cout<<"No solution is possible";
+					break;
+				}
+				polarNum *temp = matA[j];
+				matA[j] = matA[i];
+				matA[i] = temp;
+			}
+			for (int k = variableCount; k >= i; --k)
+			{
+				matA[i][k] = matA[i][k] / matA[i][i];
+			}
+			for (int j = 0; j < variableCount; ++j)
+			{
+				if(j == i)
+						continue;
+				for (int l = variableCount; l >=i; --l)
+				{
+					matA[j][l] = matA[j][l] - matA[i][l]*matA[j][i];
+				}
+			}
+		}
+	}
+	polarNum getSolutionFor(int _var)
+	{
+		return matA[_var][variableCount];
+	}
 };
 
 node::node()
@@ -352,7 +474,16 @@ polarNum polarParse(float a, float b)
 {
 	polarNum temp;
 	temp.l = sqrt(a*a+b*b);
-	temp.a = atan(b/a);
+	if(a==0&&b!=0)
+		temp.a = (b>0?1:-1)*M_PI/2;
+	else if(a==0&&b==0)
+		temp.a = 0;
+	else
+	{
+		temp.a = atan(b/a);
+		if(a<0)
+			temp.a *= -1;
+	}
 	return temp;
 }
 
@@ -404,6 +535,19 @@ int main()
 		}
 	}
 
+	matrixSolver mat(3);
+	polarNum sol;
+	double ar[] = {1,1,1,6},br[] = {1,1,-1,0},cr[]={2,1,-1,1};
+	mat.addEquations(ar);
+	mat.addEquations(br);
+	mat.addEquations(cr);
+	mat.solve();
+	sol = mat.getSolutionFor(0);
+	cout<<"a = "<<sol.l<<endl;
+	sol = mat.getSolutionFor(1);
+	cout<<"b = "<<sol.l<<endl;
+	sol = mat.getSolutionFor(2);
+	cout<<"c = "<<sol.l<<endl;
 	system("pause");
 	system("cls");
 	return 0;
