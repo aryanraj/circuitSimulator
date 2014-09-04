@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cmath>
-#include <exception>
 using namespace std;
 
 struct polarNum;
+struct currentPath;
 class connection;
 class node;
 
@@ -20,6 +20,13 @@ struct polarNum
 	float imagenary()
 	{
 		return l*sin(a);
+	}
+	polarNum operator+(int b)
+	{
+		polarNum temp;
+		temp.l = this->l+b;
+		temp.a = this->a;
+		return temp;
 	}
 	polarNum operator+(polarNum b)
 	{
@@ -106,6 +113,8 @@ private:
 	connection **connectionArray;
 
 public:
+	static node* nodes;
+	static int count;
 	node();
 	~node();
 	void setConnectionCount(int,int);
@@ -116,6 +125,9 @@ public:
 	int getSelfNum();
 	void resetConnectionCounter();
 };
+
+node* node::nodes = NULL;
+int node::count = 0;
 
 class connection
 {
@@ -128,15 +140,38 @@ private:
 	polarNum voltage;
 	polarNum current;
 public:
+	static connection* connections;
+	static int count;
 	connection();
 	~connection();
 	void setDetails(node*,node* ,polarNum,polarNum,polarNum);
 	void printData();
 	void setTraversed(node*,int);
 	bool isTraversed();
-	void setCurrent(polarNum[],int);
+	void setPotentialEquation(polarNum[],int);
+	void setCurrentEquation(polarNum[]);
 	node* getOtherNode(node*);
+	int getFromNodeNumber()
+	{
+		return fromNode->getSelfNum();
+	}
+	int getToNodeNumber()
+	{
+		return toNode->getSelfNum();
+	}
+	bool isCurrentSourcePresent()
+	{
+		if(current==0) return false;
+		return true;
+	}
+	int getCurrentDirectionFor(int i)
+	{
+		return variable[i];
+	}
 };
+
+connection* connection::connections = NULL;
+int connection::count = 0;
 
 struct currentPath
 {
@@ -146,10 +181,12 @@ struct currentPath
 	currentPath *next;
 	currentPath *supposeNext;
 	int selfNum;
+	bool traversed;
 	static int pathCountActual;
 	static int maxLoops;
 	static int pathCountSuppose;
 	static int currentCounter;
+	static currentPath **allPaths;
 	currentPath(node*,currentPath*);
 	static currentPath* make(node*,currentPath*);
 	static currentPath* start;
@@ -157,8 +194,22 @@ struct currentPath
 	bool getNextNode();
 	void solidifyPath();
 	void convertSupposeToActual();
-	void getEquation(polarNum[]);
+	static void startGettingNewEquation(polarNum[]);
+	void traverseToGetEquation(polarNum[],int);
+	static void onGettingCurrentSource(polarNum[],currentPath*,int);
 	bool hasOccured(node*);
+	void setTraversedFalse()
+	{
+		traversed = false;
+	}
+	bool isTraversed()
+	{
+		return traversed;
+	}
+	void setTraversedTrue()
+	{
+		traversed = true;
+	}
 	~currentPath();
 	static void printActualCurrentPath();
 	static void printSupposeCurrentPath();
@@ -345,16 +396,25 @@ void connection::setTraversed(node *_from,int currentNumber)
 	variable[currentNumber] = _from==fromNode?1:-1;
 }
 
-void connection::setCurrent(polarNum currentArray[],int currentNumber)
+void connection::setPotentialEquation(polarNum equationArray[],int currentNumber)
 {
 	int direct;
-	if(variable[currentNumber]==-1)
-		direct = -1;
+	if(currentNumber >= 0)
+		if(variable[currentNumber] == -1)	direct = -1;
+		else	direct = 1;
 	else
-		direct = 1;
+		if(variable[currentNumber * -1] == -1)	direct = 1;
+		else	direct = -1;
 	for (int i = 0; i < currentPath::maxLoops; ++i)
-		currentArray[i]=currentArray[i]+impedence*variable[i]*float(direct);
-	currentArray[currentPath::maxLoops] = currentArray[currentPath::maxLoops]+voltage*variable[currentNumber];
+		equationArray[i]=equationArray[i]+impedence*variable[i]*float(direct);
+	equationArray[currentPath::maxLoops] = equationArray[currentPath::maxLoops]+voltage*direct;
+}
+
+void connection::setCurrentEquation(polarNum equationArray[])
+{
+	for (int i = 0; i < currentPath::maxLoops; ++i)
+		equationArray[i]=equationArray[i]+variable[i];
+	equationArray[currentPath::maxLoops] = current;
 }
 
 bool connection::isTraversed()
@@ -372,6 +432,7 @@ int currentPath::pathCountActual = 0;
 int currentPath::pathCountSuppose = 0;
 int currentPath::currentCounter = 0;
 int currentPath::maxLoops = 0;
+currentPath **currentPath::allPaths = NULL;
 
 currentPath::~currentPath()
 {
@@ -385,6 +446,7 @@ currentPath::currentPath(node* _through,currentPath* _prev)
 	this->supposeNext = NULL;
 	this->next = NULL;
 	selfNum = currentCounter;
+	traversed = false;
 	if(_prev == NULL)
 	{
 		start = this;
@@ -454,7 +516,6 @@ void currentPath::convertSupposeToActual()
 
 void currentPath::solidifyPath()
 {
-	printActualCurrentPath();
 	currentPath* temp = start;
 	while(temp->next!=NULL)
 	{
@@ -524,15 +585,64 @@ currentPath* currentPath::startNewTraversePath(node* _start)
 	}
 }
 
-void currentPath::getEquation(polarNum arr[])
+void currentPath::onGettingCurrentSource(polarNum arr[],currentPath *path,int direction)
+{
+	int j,flag;
+	for (j = 0; j < currentPath::maxLoops; ++j)
+	{
+		currentPath * temp = currentPath::allPaths[j];
+		do
+		{
+			flag = 0;
+			if(temp->to == path->to && temp != path)
+			{
+				temp->setTraversedTrue();
+				if(temp->through == path->through)	temp->next->traverseToGetEquation(arr,direction*-1);
+				else	temp->next->traverseToGetEquation(arr,direction);
+				flag = 1;
+				break;
+			}
+			temp = temp->next;
+		}while(temp!=currentPath::allPaths[j]);
+		if(flag == 1)	break;
+	}
+}
+
+void currentPath::traverseToGetEquation(polarNum arr[],int direction = 1)
 {
 	currentPath *temp = this;
-	while(temp->next!=this)
+	do
 	{
-		temp->to->setCurrent(arr,this->selfNum);
+		if(!temp->to->isCurrentSourcePresent())
+		{
+			if(direction == 1)	temp->to->setPotentialEquation(arr,this->selfNum);
+			else	temp->to->setPotentialEquation(arr,this->selfNum*-1);
+		}
+		else
+			if(!temp->isTraversed())
+				currentPath::onGettingCurrentSource(arr,temp,direction);
+		temp->setTraversedTrue();
 		temp = temp->next;
+	}while(temp!=this);
+}
+
+void currentPath::startGettingNewEquation(polarNum arr[])
+{
+	int i;
+	static int num = 0;
+	for (i = 0; i < currentPath::maxLoops; ++i)
+		if(!currentPath::allPaths[i]->isTraversed())
+			break;
+	if(i < currentPath::maxLoops)
+		currentPath::allPaths[i]->traverseToGetEquation(arr);
+	else{
+		for(i = num;i<connection::count;i++)
+			if(connection::connections[i].isCurrentSourcePresent()){
+				connection::connections[i].setCurrentEquation(arr);
+				break;
+			}
+		num = i;
 	}
-	temp->to->setCurrent(arr,this->selfNum);
 }
 
 polarNum polarParse(float a, float b)
@@ -557,76 +667,82 @@ polarNum polarParse(float a, float b)
 
 int main()
 {	
-	node *nodes;
-	connection *connections;
-	currentPath **currents,*one,*two;
-	int nodeCount=0,connectionCount=0,temp,nLoops;
+	currentPath *one,*two;
+	int temp;
 	
 	cout<<"Enter the number of nodes : ";
-	cin>>nodeCount;
-	nodes = new node[nodeCount];
+	cin>>node::count;
+	node::nodes = new node[node::count];
 	
 	cout<<"Enter the number of connections per node\n";
-	for(int i=0;i<nodeCount;i++)	//setting node deatils
+	for(int i=0;i<node::count;i++)	//setting node deatils
 	{
 		cout<<"Node #"<<i+1<<" : ";
 		cin>>temp;
-		nodes[i].setConnectionCount(temp,i);
-		connectionCount+=temp;
+		node::nodes[i].setConnectionCount(temp,i);
+		connection::count+=temp;
 	}
-	connectionCount/=2;
-	connections = new connection[connectionCount];
-
+	connection::count/=2;
+	connection::connections = new connection[connection::count];
 	cout<<"Enter the connection details as 'nodeA nodeB Resistance Inductance Capacitance VoltageSourcePeak VoltageSourcePhase CurrentSourcePeak CurrentSourcePhase'\n";
-	for(int i=0;i<connectionCount;i++)	//setting connections details
+	for(int i=0;i<connection::count;i++)	//setting connection::connections details
 	{
 		int nodeA,nodeB;
 		float Resistance,Inductance,Capacitance,VoltageSourcePeak,VoltageSourcePhase,CurrentSourcePeak,CurrentSourcePhase;
 		cout<<"Connection #"<<i+1<<" : ";
 		cin>>nodeA>>nodeB>>Resistance>>Inductance>>Capacitance>>VoltageSourcePeak>>VoltageSourcePhase>>CurrentSourcePeak>>CurrentSourcePhase;
-		connections[i].setDetails(&nodes[nodeA-1],&nodes[nodeB-1],polarParse(Resistance,Inductance-Capacitance),polarNum({VoltageSourcePeak,VoltageSourcePhase/180*M_PI}),polarNum({CurrentSourcePeak,CurrentSourcePhase/180*M_PI}));
-		nodes[nodeA-1].addConnectionDetails(&connections[i]);
-		nodes[nodeB-1].addConnectionDetails(&connections[i]);
+		connection::connections[i].setDetails(&node::nodes[nodeA-1],&node::nodes[nodeB-1],polarParse(Resistance,Inductance-Capacitance),polarNum({VoltageSourcePeak,VoltageSourcePhase/180*M_PI}),polarNum({CurrentSourcePeak,CurrentSourcePhase/180*M_PI}));
+		node::nodes[nodeA-1].addConnectionDetails(&connection::connections[i]);
+		node::nodes[nodeB-1].addConnectionDetails(&connection::connections[i]);
 	}
-	nLoops = connectionCount - nodeCount + 1;
-	currents = new currentPath*[nLoops];
-	currentPath::maxLoops = nLoops;
-	for (int i = 0; i < nodeCount; ++i)
+	currentPath::maxLoops = connection::count - node::count + 1;
+	currentPath::allPaths = new currentPath*[currentPath::maxLoops];
+	for (int i = 0; i < node::count; ++i)
 	{
-		while((one = currentPath::startNewTraversePath(&nodes[i]))!=NULL)
+		while((one = currentPath::startNewTraversePath(&node::nodes[i]))!=NULL)
 		{
-			currents[currentPath::currentCounter++] = one;
+			currentPath::allPaths[currentPath::currentCounter++] = one;
 			cout<<"final path:";
 			two = one;
 			do
 			{
 				cout<<two->through->getSelfNum()+1<<" > ";
 				two = two->next;
+				two->setTraversedFalse();
 			} while (two!=one);
 			cout<<two->through->getSelfNum()+1<<endl<<endl;
 		}
 	}
 
-	polarNum arr[nLoops+1];
-	matrixSolver mat(nLoops);
-	for (int j = 0; j < nLoops; ++j)
+
+	polarNum arr[currentPath::maxLoops+1];
+	matrixSolver mat(currentPath::maxLoops);
+	for (int j = 0; j < currentPath::maxLoops; ++j)
 	{
-		for (int i = 0; i < nLoops+1; ++i)
+		for (int i = 0; i < currentPath::maxLoops+1; ++i)
 		{
 			arr[i].l=0;
 			arr[i].a=0;
-		}	
-		currents[j]->getEquation(arr);
-		for (int i = 0; i < nLoops+1; ++i)	cout<<arr[i].real()<<" + ";
-			cout<<endl;
+		}
+		currentPath::startGettingNewEquation(arr);
 		mat.addEquations(arr);
 	}
 	mat.solve();
-	for (int i = 0; i < nLoops; ++i)
+	for (int i = 0; i < currentPath::maxLoops; ++i)
 	{
-		cout<<"solution current "<<i+1<<" = "<<(mat.getSolutionFor(i)).real()<<" + "<<(mat.getSolutionFor(i)).imagenary()<<"i"<<endl;
+		cout<<"solution current in loop "<<i+1<<" = "<<(mat.getSolutionFor(i)).real()<<" + "<<(mat.getSolutionFor(i)).imagenary()<<"i"<<endl;
 	}
-	
+	cout<<"\n\n\n\nCurrent from one node to other are given below :-\n\n";
+	for(int i = 0;i<connection::count;i++)
+	{
+		polarNum sum = {0,0};
+		for(int j = 0;j<currentPath::maxLoops;j++)
+		{
+			sum = sum + mat.getSolutionFor(j) * connection::connections[i].getCurrentDirectionFor(j);
+		}
+		cout<<"Node "<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node "<<connection::connections[i].getToNodeNumber()+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"i"<<endl;
+	}
+	cout<<endl<<endl;
 	system("pause");
 	system("cls");
 	return 0;
