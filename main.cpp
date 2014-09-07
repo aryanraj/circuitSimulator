@@ -15,11 +15,11 @@ struct polarNum
 	float a;
 	float real()
 	{
-		return l*cos(a);
+		return abs(l*cos(a))<abs(l*sin(a))*1E-5?0:l*cos(a);
 	}
 	float imagenary()
 	{
-		return l*sin(a);
+		return abs(l*sin(a))<abs(l*cos(a))*1E-5?0:l*sin(a);
 	}
 	polarNum operator+(int b)
 	{
