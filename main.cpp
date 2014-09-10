@@ -1,5 +1,11 @@
 #include <iostream>
 #include <cmath>
+#include <string>
+#include <stdlib.h>
+#include <stdio.h>
+#include <vector>
+#include <algorithm>
+#include <sstream>
 using namespace std;
 
 struct polarNum;
@@ -690,6 +696,60 @@ polarNum polarParse(float a, float b)
 	return temp;
 }
 
+vector<string> split(string str,char delim = ' ')
+{
+	vector<string> arr;
+	vector<char> temp;
+	//arr.push_back()
+	for (int i = 0; i < str.length(); ++i)
+	{
+		if(str[i] != delim)
+			temp.push_back(str[i]);
+		else
+		{
+			if(temp.size()!=0)
+			arr.push_back(string(temp.begin(),temp.end()));
+			temp.clear();
+		}
+	}
+	arr.push_back(string(temp.begin(),temp.end()));
+	cout<<arr.size()<<"  "<<arr.front()<<endl;
+	return arr;
+}
+
+void getDataAwesome()
+{
+	struct nodeData{int selfNum,connectionsCount;};
+	struct connectionData{int nodeFrom,nodeTo;};
+	vector<string> data,tempVec;
+	vector<int> nodeNumber;
+	string temp;
+	//cin.ignore();	//Because cin leaves delimiter character in the buffer and hence any next getline or anything takes in the delimiter character and fills the first space
+	cout<<"Enter the data as node1 node2 and different params (avoid spaces)\n\
+	Eg. 1 2 10+2jV 10ang(10)R 3+2jA \n\
+	Type 'solve' to compute\n\n";
+	do{
+		cout<<"connection #"<<data.size()+1<<" : ";
+		getline(cin,temp);
+		if(temp.find("solve")==string::npos)
+		{
+			if(temp.find_first_not_of(' ') != string::npos)
+				data.push_back(temp);
+		}
+	}while(temp.find("solve")==string::npos);
+	connection::count = data.size();
+	for (vector<string>::iterator i = data.begin(); i != data.end(); ++i)
+	{
+		cout<<*i<<endl;
+		tempVec = split(*i);
+		if(find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[0].c_str()))==nodeNumber.end())
+			nodeNumber.push_back(atoi(tempVec[0].c_str())); //istringstream(tempVec[0])>>temp;
+		if(find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[1].c_str()))==nodeNumber.end())
+			nodeNumber.push_back(atoi(tempVec[1].c_str()));
+		tempVec.clear();
+	}
+}
+
 void getData()
 {
 	int temp;
@@ -785,11 +845,10 @@ void displayResult(matrixSolver *mat)
 
 int main()
 {
-	matrixSolver *mat;
-	getData();
-	mat = evaluateData();
-	displayResult(mat);
-	system("pause");
-	system("cls");
+	//matrixSolver *mat;
+	//getData();
+	//mat = evaluateData();
+	//displayResult(mat);
+	getDataAwesome();
 	return 0;
 }
