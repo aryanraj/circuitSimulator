@@ -713,16 +713,37 @@ vector<string> split(string str,char delim = ' ')
 		}
 	}
 	arr.push_back(string(temp.begin(),temp.end()));
-	cout<<arr.size()<<"  "<<arr.front()<<endl;
+	//cout<<arr.size()<<"  "<<arr.front()<<endl;
 	return arr;
 }
 
+polarNum parseData(string data)
+{
+	polarNum num;
+	if(data.find('+') != string::npos)
+	{
+		vector<string> temp;
+		temp = split(data,'+');
+		num = polarParse(atoi(temp[0].c_str()),atoi(temp[1].substr(0,temp[1].length()-1).c_str()));
+	}
+	else
+	{
+		num.l = atoi(data.substr(0,data.find("ang")).c_str());
+		num.a = atoi(data.substr(data.find("ang")+4,data.length()-1).c_str())*M_PI/180.0;
+	}
+	return num;
+}
+
+struct nodeData{int selfNum,connectionsCount;};
+struct connectionData{int nodeFrom,nodeTo;polarNum volt,resis,curr;};
+
 void getDataAwesome()
 {
-	struct nodeData{int selfNum,connectionsCount;};
-	struct connectionData{int nodeFrom,nodeTo;};
 	vector<string> data,tempVec;
+	vector<nodeData> nodes;
+	vector<connectionData> connections;
 	vector<int> nodeNumber;
+	nodeData nodeTemp; connectionData connectionTemp;
 	string temp;
 	//cin.ignore();	//Because cin leaves delimiter character in the buffer and hence any next getline or anything takes in the delimiter character and fills the first space
 	cout<<"Enter the data as node1 node2 and different params (avoid spaces)\n\
@@ -733,19 +754,50 @@ void getDataAwesome()
 		getline(cin,temp);
 		if(temp.find("solve")==string::npos)
 		{
-			if(temp.find_first_not_of(' ') != string::npos)
+			if(temp.find_first_not_of(' ') != string::npos) //checking for empty string
 				data.push_back(temp);
 		}
 	}while(temp.find("solve")==string::npos);
 	connection::count = data.size();
 	for (vector<string>::iterator i = data.begin(); i != data.end(); ++i)
 	{
-		cout<<*i<<endl;
+		//cout<<*i<<endl;
 		tempVec = split(*i);
-		if(find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[0].c_str()))==nodeNumber.end())
-			nodeNumber.push_back(atoi(tempVec[0].c_str())); //istringstream(tempVec[0])>>temp;
-		if(find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[1].c_str()))==nodeNumber.end())
+		vector<int>::iterator iteratorTemp;
+		if((iteratorTemp = find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[0].c_str())))==nodeNumber.end()){
+			nodeNumber.push_back(atoi(tempVec[0].c_str()));
+			nodeTemp.selfNum = atoi(tempVec[0].c_str());
+			nodeTemp.connectionsCount = 1;
+			nodes.push_back(nodeTemp);
+		} //istringstream(tempVec[0])>>temp;
+		if((iteratorTemp = find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[1].c_str())))==nodeNumber.end()){
 			nodeNumber.push_back(atoi(tempVec[1].c_str()));
+			nodeTemp.selfNum = atoi(tempVec[1].c_str());
+			nodeTemp.connectionsCount = 1;
+			nodes.push_back(nodeTemp);
+		}
+		for(int j = 2;j<tempVec.size();j++)
+		{
+			switch(tempVec[j][tempVec[j].length()-1])
+			{
+				case 'v':
+				case 'V':
+						//cout<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).real()<<"+"<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).imagenary()<<endl;
+						connectionTemp.volt = tempVec[j].substr(0,tempVec[j].length()-1));
+					break;
+				case 'a':
+				case 'A':
+						connectionTemp.curr = tempVec[j].substr(0,tempVec[j].length()-1));
+					break;
+				case 'r':
+				case 'R':
+						connectionTemp.resis = tempVec[j].substr(0,tempVec[j].length()-1));
+					break;
+				default: cout<<"error yo "<<tempVec[j][tempVec[j].length()-1]<<endl;
+			}	
+		}
+		connectionTemp.nodeFrom = atoi(tempVec[0].c_str());
+		connectionTemp.toNode = atoi(tempVec[1].c_str());
 		tempVec.clear();
 	}
 }
