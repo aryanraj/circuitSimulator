@@ -491,7 +491,7 @@ void currentPath::printActualCurrentPath()
 	cout<<"current Path : \n";
 	while(temp!=NULL)
 	{
-		cout<<temp->through->getSelfNum()+1<<" > ";
+		cout<<temp->through->getSelfNum()<<" > ";
 		temp = temp->next;
 	}
 	cout<<endl<<endl;
@@ -726,16 +726,41 @@ polarNum parseData(string data)
 		temp = split(data,'+');
 		num = polarParse(atoi(temp[0].c_str()),atoi(temp[1].substr(0,temp[1].length()-1).c_str()));
 	}
-	else
+	else if(data.find("ang") != string::npos)
 	{
 		num.l = atoi(data.substr(0,data.find("ang")).c_str());
 		num.a = atoi(data.substr(data.find("ang")+4,data.length()-1).c_str())*M_PI/180.0;
+	}
+	else
+	{
+		num.l = atoi(data.c_str());
+		num.a = 0;
 	}
 	return num;
 }
 
 struct nodeData{int selfNum,connectionsCount;};
 struct connectionData{int nodeFrom,nodeTo;polarNum volt,resis,curr;};
+
+void setData(vector<nodeData> nodes,vector<connectionData> connections,vector<int> nodeNumber)
+{
+	node::count = nodes.size();
+	node::nodes = new node[node::count];
+	connection::count=connections.size();
+	connection::connections = new connection[connection::count];
+	for(int i=0;i<node::count;i++)
+		node::nodes[i].setConnectionCount(nodes[i].connectionsCount,nodes[i].selfNum);
+	for (int i = 0; i < connection::count; ++i)
+	{
+		int nodeFrom = find(nodeNumber.begin(),nodeNumber.end(),connections[i].nodeFrom) - nodeNumber.begin();
+		int nodeTo = find(nodeNumber.begin(),nodeNumber.end(),connections[i].nodeTo) - nodeNumber.begin();
+		connection::connections[i].setDetails(&node::nodes[nodeFrom],&node::nodes[nodeTo],connections[i].resis,connections[i].volt,connections[i].curr);
+		node::nodes[nodeFrom].addConnectionDetails(&connection::connections[i]);
+		node::nodes[nodeTo].addConnectionDetails(&connection::connections[i]);
+	}
+	currentPath::maxLoops = connection::count - node::count + 1;
+	currentPath::allPaths = new currentPath*[currentPath::maxLoops];
+}
 
 void getDataAwesome()
 {
@@ -762,6 +787,7 @@ void getDataAwesome()
 	for (vector<string>::iterator i = data.begin(); i != data.end(); ++i)
 	{
 		//cout<<*i<<endl;
+		connectionTemp.volt = connectionTemp.curr = connectionTemp.resis = 0;
 		tempVec = split(*i);
 		vector<int>::iterator iteratorTemp;
 		if((iteratorTemp = find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[0].c_str())))==nodeNumber.end()){
@@ -770,12 +796,16 @@ void getDataAwesome()
 			nodeTemp.connectionsCount = 1;
 			nodes.push_back(nodeTemp);
 		} //istringstream(tempVec[0])>>temp;
+		else
+			nodes[iteratorTemp - nodeNumber.begin()].connectionsCount++;
 		if((iteratorTemp = find(nodeNumber.begin(),nodeNumber.end(),atoi(tempVec[1].c_str())))==nodeNumber.end()){
 			nodeNumber.push_back(atoi(tempVec[1].c_str()));
 			nodeTemp.selfNum = atoi(tempVec[1].c_str());
 			nodeTemp.connectionsCount = 1;
 			nodes.push_back(nodeTemp);
 		}
+		else
+			nodes[iteratorTemp - nodeNumber.begin()].connectionsCount++;
 		for(int j = 2;j<tempVec.size();j++)
 		{
 			switch(tempVec[j][tempVec[j].length()-1])
@@ -783,25 +813,34 @@ void getDataAwesome()
 				case 'v':
 				case 'V':
 						//cout<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).real()<<"+"<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).imagenary()<<endl;
-						connectionTemp.volt = tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.volt = parseData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				case 'a':
 				case 'A':
-						connectionTemp.curr = tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.curr = parseData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				case 'r':
 				case 'R':
-						connectionTemp.resis = tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.resis = parseData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				default: cout<<"error yo "<<tempVec[j][tempVec[j].length()-1]<<endl;
 			}	
 		}
 		connectionTemp.nodeFrom = atoi(tempVec[0].c_str());
-		connectionTemp.toNode = atoi(tempVec[1].c_str());
+		connectionTemp.nodeTo = atoi(tempVec[1].c_str());
+		connections.push_back(connectionTemp);
 		tempVec.clear();
 	}
+	cout<<endl;
+	setData(nodes,connections,nodeNumber);
+	for(int i = 0; i < nodes.size(); ++i)
+		cout<<"Node #"<<i+1<<" : "<<nodes[i].selfNum<<" "<<nodes[i].connectionsCount<<endl;
+	cout<<endl;
+	for (int i = 0; i < connections.size(); ++i)
+		cout<<"Connection #"<<i+1<<" : "<<connections[i].nodeFrom<<" "<<connections[i].nodeTo<<" "<<connections[i].resis.real()<<"+"<<connections[i].resis.imagenary()<<"j "<<connections[i].volt.real()<<"+"<<connections[i].volt.imagenary()<<"j "<<connections[i].curr.real()<<"+"<<connections[i].curr.imagenary()<<"j "<<endl;
+	cout<<endl;
 }
-
+/*
 void getData()
 {
 	int temp;
@@ -834,7 +873,7 @@ void getData()
 	currentPath::maxLoops = connection::count - node::count + 1;
 	currentPath::allPaths = new currentPath*[currentPath::maxLoops];
 	
-}
+}*/
 
 matrixSolver* evaluateData()
 {
@@ -844,15 +883,15 @@ matrixSolver* evaluateData()
 		while((one = currentPath::startNewTraversePath(&node::nodes[i]))!=NULL)
 		{
 			currentPath::allPaths[currentPath::currentCounter++] = one;
-			cout<<"final path:";
+			cout<<"Path #"<<currentPath::currentCounter<<" : ";
 			two = one;
 			do
 			{
-				cout<<two->through->getSelfNum()+1<<" > ";
+				cout<<two->through->getSelfNum()<<" > ";
 				two = two->next;
 				two->setTraversedFalse();
 			} while (two!=one);
-			cout<<two->through->getSelfNum()+1<<endl<<endl;
+			cout<<two->through->getSelfNum()<<endl<<endl;
 		}
 	}
 	polarNum arr[currentPath::maxLoops+1];
@@ -866,11 +905,11 @@ matrixSolver* evaluateData()
 		}
 		currentPath::startGettingNewEquation(arr);
 		mat->addEquations(arr);
-		for (int k = 0; k <= currentPath::maxLoops; ++k)
+		/*for (int k = 0; k <= currentPath::maxLoops; ++k)
 		{
 			cout<<arr[k].real()<<" + ";
 		}
-		cout<<endl; 
+		cout<<endl;*/ 
 	}
 	mat->solve();
 	return mat;
@@ -880,7 +919,7 @@ void displayResult(matrixSolver *mat)
 {
 	for (int i = 0; i < currentPath::maxLoops; ++i)
 	{
-		cout<<"solution current in loop "<<i+1<<" = "<<(mat->getSolutionFor(i)).real()<<" + "<<(mat->getSolutionFor(i)).imagenary()<<"i"<<endl;
+		cout<<"Current in loop #"<<i+1<<" = "<<(mat->getSolutionFor(i)).real()<<" + "<<(mat->getSolutionFor(i)).imagenary()<<"j"<<endl;
 	}
 	cout<<"\n\n\n\nCurrent from one node to other are given below :-\n\n";
 	for(int i = 0;i<connection::count;i++)
@@ -890,17 +929,17 @@ void displayResult(matrixSolver *mat)
 		{
 			sum = sum + mat->getSolutionFor(j) * connection::connections[i].getCurrentDirectionFor(j);
 		}
-		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()+1<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"i"<<endl;
+		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()+1<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<endl;
 	}
 	cout<<endl<<endl;
 }
 
 int main()
 {
-	//matrixSolver *mat;
+	matrixSolver *mat;
 	//getData();
-	//mat = evaluateData();
-	//displayResult(mat);
 	getDataAwesome();
+	mat = evaluateData();
+	displayResult(mat);
 	return 0;
 }
