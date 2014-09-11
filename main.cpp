@@ -891,7 +891,7 @@ void displayResult(matrixSolver *mat)
 		{
 			sum = sum + mat->getSolutionFor(j) * connection::connections[i].getCurrentDirectionFor(j);
 		}
-		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()+1<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<" OR "<<sum.l<<"ang("<<sum.a*180/M_PI<<")"<<endl;
+		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<" OR "<<sum.l<<"ang("<<sum.a*180/M_PI<<")"<<endl;
 	}
 	cout<<endl<<endl;
 }
