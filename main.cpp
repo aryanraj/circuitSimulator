@@ -767,7 +767,6 @@ void getDataAwesome()
 	vector<int> nodeNumber;
 	nodeData nodeTemp; connectionData connectionTemp;
 	string temp;
-	//cin.ignore();	//Because cin leaves delimiter character in the buffer and hence any next getline or anything takes in the delimiter character and fills the first space
 	cout<<"Enter the data as node1 node2 and different params (avoid spaces)\n\
 	Eg. 1 2 10+2jV 10ang(10)R 3+2jA \n\
 	Type 'solve' to compute\n\n";
@@ -837,40 +836,6 @@ void getDataAwesome()
 		cout<<"Connection #"<<i+1<<" : "<<connections[i].nodeFrom<<" "<<connections[i].nodeTo<<" "<<connections[i].resis.real()<<"+"<<connections[i].resis.imagenary()<<"j "<<connections[i].volt.real()<<"+"<<connections[i].volt.imagenary()<<"j "<<connections[i].curr.real()<<"+"<<connections[i].curr.imagenary()<<"j "<<endl;
 	cout<<endl;
 }
-/*
-void getData()
-{
-	int temp;
-	
-	cout<<"Enter the number of nodes : ";
-	cin>>node::count;
-	node::nodes = new node[node::count];
-	
-	cout<<"Enter the number of connections per node\n";
-	for(int i=0;i<node::count;i++)	//setting node deatils
-	{
-		cout<<"Node #"<<i+1<<" : ";
-		cin>>temp;
-		node::nodes[i].setConnectionCount(temp,i);
-		connection::count+=temp;
-	}
-	connection::count/=2;
-	connection::connections = new connection[connection::count];
-	cout<<"Enter the connection details as 'nodeA nodeB Resistance Inductance Capacitance VoltageSourcePeak VoltageSourcePhase CurrentSourcePeak CurrentSourcePhase'\n";
-	for(int i=0;i<connection::count;i++)	//setting connection::connections details
-	{
-		int nodeA,nodeB;
-		float Resistance,Inductance,Capacitance,VoltageSourcePeak,VoltageSourcePhase,CurrentSourcePeak,CurrentSourcePhase;
-		cout<<"Connection #"<<i+1<<" : ";
-		cin>>nodeA>>nodeB>>Resistance>>Inductance>>Capacitance>>VoltageSourcePeak>>VoltageSourcePhase>>CurrentSourcePeak>>CurrentSourcePhase;
-		connection::connections[i].setDetails(&node::nodes[nodeA-1],&node::nodes[nodeB-1],polarParse(Resistance,Inductance-Capacitance),polarNum({VoltageSourcePeak,VoltageSourcePhase/180*M_PI}),polarNum({CurrentSourcePeak,CurrentSourcePhase/180*M_PI}));
-		node::nodes[nodeA-1].addConnectionDetails(&connection::connections[i]);
-		node::nodes[nodeB-1].addConnectionDetails(&connection::connections[i]);
-	}
-	currentPath::maxLoops = connection::count - node::count + 1;
-	currentPath::allPaths = new currentPath*[currentPath::maxLoops];
-	
-}*/
 
 matrixSolver* evaluateData()
 {
@@ -934,7 +899,6 @@ void displayResult(matrixSolver *mat)
 int main()
 {
 	matrixSolver *mat;
-	//getData();
 	getDataAwesome();
 	mat = evaluateData();
 	displayResult(mat);
