@@ -720,21 +720,18 @@ vector<string> split(string str,char delim = ' ')
 polarNum parseData(string data)
 {
 	polarNum num;
-	if(data.find('+') != string::npos)
-	{
-		vector<string> temp;
-		temp = split(data,'+');
-		num = polarParse(atoi(temp[0].c_str()),atoi(temp[1].substr(0,temp[1].length()-1).c_str()));
-	}
-	else if(data.find("ang") != string::npos)
+	if(data.find("ang") != string::npos)
 	{
 		num.l = atoi(data.substr(0,data.find("ang")).c_str());
 		num.a = atoi(data.substr(data.find("ang")+4,data.length()-1).c_str())*M_PI/180.0;
 	}
 	else
 	{
-		num.l = atoi(data.c_str());
-		num.a = 0;
+		float re=0,im=0;
+		string normalData;
+		normalData = data;
+		istringstream(normalData)>>re>>im;
+		num = polarParse(re,im);
 	}
 	return num;
 }
@@ -742,7 +739,7 @@ polarNum parseData(string data)
 struct nodeData{int selfNum,connectionsCount;};
 struct connectionData{int nodeFrom,nodeTo;polarNum volt,resis,curr;};
 
-void setData(vector<nodeData> nodes,vector<connectionData> connections,vector<int> nodeNumber)
+void setAwesomeData(vector<nodeData> nodes,vector<connectionData> connections,vector<int> nodeNumber)
 {
 	node::count = nodes.size();
 	node::nodes = new node[node::count];
@@ -813,15 +810,15 @@ void getDataAwesome()
 				case 'v':
 				case 'V':
 						//cout<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).real()<<"+"<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).imagenary()<<endl;
-						connectionTemp.volt = parseData(tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.volt = connectionTemp.volt + parseData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				case 'a':
 				case 'A':
-						connectionTemp.curr = parseData(tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.curr = connectionTemp.curr + parseData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				case 'r':
 				case 'R':
-						connectionTemp.resis = parseData(tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.resis = connectionTemp.resis + parseData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				default: cout<<"error yo "<<tempVec[j][tempVec[j].length()-1]<<endl;
 			}	
@@ -832,7 +829,7 @@ void getDataAwesome()
 		tempVec.clear();
 	}
 	cout<<endl;
-	setData(nodes,connections,nodeNumber);
+	setAwesomeData(nodes,connections,nodeNumber);
 	for(int i = 0; i < nodes.size(); ++i)
 		cout<<"Node #"<<i+1<<" : "<<nodes[i].selfNum<<" "<<nodes[i].connectionsCount<<endl;
 	cout<<endl;
@@ -929,7 +926,7 @@ void displayResult(matrixSolver *mat)
 		{
 			sum = sum + mat->getSolutionFor(j) * connection::connections[i].getCurrentDirectionFor(j);
 		}
-		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()+1<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<endl;
+		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()+1<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<" OR "<<sum.l<<"ang("<<sum.a<<")"<<endl;
 	}
 	cout<<endl<<endl;
 }
@@ -941,5 +938,7 @@ int main()
 	getDataAwesome();
 	mat = evaluateData();
 	displayResult(mat);
+	cin.ignore();
+	cin.get();
 	return 0;
 }
