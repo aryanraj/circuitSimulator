@@ -867,11 +867,11 @@ matrixSolver* evaluateData()
 		}
 		currentPath::startGettingNewEquation(arr);
 		mat->addEquations(arr);
-		/*for (int k = 0; k <= currentPath::maxLoops; ++k)
+		for (int k = 0; k <= currentPath::maxLoops; ++k)
 		{
-			cout<<arr[k].real()<<" + ";
+			cout<<arr[k].real()<<"+"<<arr[k].imagenary()<<"j ";
 		}
-		cout<<endl;*/ 
+		cout<<endl;
 	}
 	mat->solve();
 	return mat;
@@ -891,7 +891,7 @@ void displayResult(matrixSolver *mat)
 		{
 			sum = sum + mat->getSolutionFor(j) * connection::connections[i].getCurrentDirectionFor(j);
 		}
-		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()+1<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<" OR "<<sum.l<<"ang("<<sum.a<<")"<<endl;
+		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()+1<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()+1<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<" OR "<<sum.l<<"ang("<<sum.a*180/M_PI<<")"<<endl;
 	}
 	cout<<endl<<endl;
 }
