@@ -717,7 +717,7 @@ vector<string> split(string str,char delim = ' ')
 	return arr;
 }
 
-polarNum parseData(string data)
+polarNum parseAwesomeData(string data)
 {
 	polarNum num;
 	if(data.find("ang") != string::npos)
@@ -809,16 +809,16 @@ void getDataAwesome()
 			{
 				case 'v':
 				case 'V':
-						//cout<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).real()<<"+"<<parseData(tempVec[j].substr(0,tempVec[j].length()-1)).imagenary()<<endl;
-						connectionTemp.volt = connectionTemp.volt + parseData(tempVec[j].substr(0,tempVec[j].length()-1));
+						//cout<<parseAwesomeData(tempVec[j].substr(0,tempVec[j].length()-1)).real()<<"+"<<parseAwesomeData(tempVec[j].substr(0,tempVec[j].length()-1)).imagenary()<<endl;
+						connectionTemp.volt = connectionTemp.volt + parseAwesomeData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				case 'a':
 				case 'A':
-						connectionTemp.curr = connectionTemp.curr + parseData(tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.curr = connectionTemp.curr + parseAwesomeData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				case 'r':
 				case 'R':
-						connectionTemp.resis = connectionTemp.resis + parseData(tempVec[j].substr(0,tempVec[j].length()-1));
+						connectionTemp.resis = connectionTemp.resis + parseAwesomeData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				default: cout<<"error yo "<<tempVec[j][tempVec[j].length()-1]<<endl;
 			}	
