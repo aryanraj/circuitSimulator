@@ -1,8 +1,5 @@
 #include <iostream>
 #include <cmath>
-#include <string>
-#include <stdlib.h>
-#include <stdio.h>
 #include <vector>
 #include <algorithm>
 #include <sstream>
