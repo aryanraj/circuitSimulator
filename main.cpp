@@ -417,7 +417,7 @@ void connection::setPotentialEquation(polarNum equationArray[],int currentNumber
 		if(variable[currentNumber * -1] == -1)	direct = 1;
 		else	direct = -1;	
 	}
-
+	cout<<"Passing current for Loop#"<<currentNumber<<" : "<<impedence.length()<<endl;
 	for (int i = 0; i < currentPath::maxLoops; ++i)
 		equationArray[i]=equationArray[i]+impedence*variable[i]*float(direct);
 	equationArray[currentPath::maxLoops] = equationArray[currentPath::maxLoops]+voltage*float(direct)*-1;
@@ -672,7 +672,7 @@ void currentPath::startGettingNewEquation(polarNum arr[])
 	}
 	else
 	{
-		cout<<"current eqution\n\n";
+		cout<<"Current Eqution\n";
 		for(i = num;i<connection::count;i++)
 			if(connection::connections[i].isCurrentSourcePresent()){
 				connection::connections[i].setCurrentEquation(arr);
@@ -834,8 +834,9 @@ void getDataAwesome()
 	}
 	cout<<endl;
 	setAwesomeData(nodes,connections,nodeNumber);
+	cout<<"The Number of connections per node is given below :-\n\n";
 	for(int i = 0; i < nodes.size(); ++i)
-		cout<<"Node #"<<i+1<<" : "<<nodes[i].selfNum<<" "<<nodes[i].connectionsCount<<endl;
+		cout<<"Node #"<<nodes[i].selfNum<<" : "<<nodes[i].connectionsCount<<endl;
 	cout<<endl;
 	for (int i = 0; i < connections.size(); ++i)
 		cout<<"Connection #"<<i+1<<" : "<<connections[i].nodeFrom<<" "<<connections[i].nodeTo<<" "<<connections[i].resis.real()<<"+"<<connections[i].resis.imagenary()<<"j "<<connections[i].volt.real()<<"+"<<connections[i].volt.imagenary()<<"j "<<connections[i].curr.real()<<"+"<<connections[i].curr.imagenary()<<"j "<<endl;
@@ -872,11 +873,12 @@ matrixSolver* evaluateData()
 		}
 		currentPath::startGettingNewEquation(arr);
 		mat->addEquations(arr);
+		cout<<endl;
 		for (int k = 0; k <= currentPath::maxLoops; ++k)
 		{
 			cout<<arr[k].real()<<"+"<<arr[k].imagenary()<<"j ";
 		}
-		cout<<endl;
+		cout<<endl<<endl<<endl;
 	}
 	mat->solve();
 	return mat;
