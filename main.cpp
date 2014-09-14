@@ -146,6 +146,7 @@ private:
 	node *fromNode;
 	node *toNode;
 	bool traversed;
+	bool currentTraversed;
 	int *variable;
 	polarNum impedence;
 	polarNum voltage;
@@ -159,6 +160,7 @@ public:
 	void printData();
 	void setTraversed(node*,int);
 	bool isTraversed();
+	bool isCurrentTraversed();
 	void setPotentialEquation(polarNum[],int);
 	void setCurrentEquation(polarNum[]);
 	node* getOtherNode(node*);
@@ -381,6 +383,7 @@ connection::connection()
 {
 	traversed = false;
 	variable = NULL;
+	currentTraversed = false;
 }
 
 void connection::setDetails(node *prev, node *next,polarNum imp,polarNum volt,polarNum cur)
@@ -428,11 +431,17 @@ void connection::setCurrentEquation(polarNum equationArray[])
 	for (int i = 0; i < currentPath::maxLoops; ++i)
 		equationArray[i]=equationArray[i]+variable[i];
 	equationArray[currentPath::maxLoops] = current;
+	currentTraversed = true;
 }
 
 bool connection::isTraversed()
 {
 	return this->traversed;
+}
+
+bool connection::isCurrentTraversed()
+{
+	return this->currentTraversed;
 }
 
 node* connection::getOtherNode(node* _node)
@@ -674,7 +683,7 @@ void currentPath::startGettingNewEquation(polarNum arr[])
 	{
 		cout<<"Current Eqution\n";
 		for(i = num;i<connection::count;i++)
-			if(connection::connections[i].isCurrentSourcePresent()){
+			if(connection::connections[i].isCurrentSourcePresent() && !connection::connections[i].isCurrentTraversed()){
 				connection::connections[i].setCurrentEquation(arr);
 				break;
 			}
