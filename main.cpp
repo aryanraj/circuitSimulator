@@ -24,6 +24,14 @@ struct polarNum
 	{
 		return abs(l*sin(a))<abs(l*cos(a))*1E-5?0:l*sin(a);
 	}
+	float length()
+	{
+		return l;
+	}
+	float angle()
+	{
+		return abs(a)<1E-4?0:a;
+	}
 	polarNum operator+(int b)
 	{
 		polarNum temp;
@@ -888,7 +896,7 @@ void displayResult(matrixSolver *mat)
 		{
 			sum = sum + mat->getSolutionFor(j) * connection::connections[i].getCurrentDirectionFor(j);
 		}
-		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<" OR "<<sum.l<<"ang("<<sum.a*180/M_PI<<")"<<endl;
+		cout<<"Node #"<<connection::connections[i].getFromNodeNumber()<<" - "<<"Node #"<<connection::connections[i].getToNodeNumber()<<" through connection #"<<i+1<<"  =  "<<sum.real()<<" + "<<sum.imagenary()<<"j"<<" OR "<<sum.length()<<"ang("<<sum.angle()*180/M_PI<<")"<<endl;
 	}
 	cout<<endl<<endl;
 }
