@@ -12,7 +12,8 @@ class node;
 
 polarNum polarParse(float,float);
 
-struct polarNum 
+// This function is used to manage polar numbers
+struct polarNum
 {
 	float l;
 	float a;
@@ -115,6 +116,7 @@ struct polarNum
 	}
 };
 
+// Each joint of the circuit is considered as node
 class node
 {
 private:
@@ -140,6 +142,7 @@ public:
 node* node::nodes = NULL;
 int node::count = 0;
 
+// Two nodes are connected using connection
 class connection
 {
 private:
@@ -418,7 +421,7 @@ void connection::setPotentialEquation(polarNum equationArray[],int currentNumber
 		else	direct = 1;
 	else{
 		if(variable[currentNumber * -1] == -1)	direct = 1;
-		else	direct = -1;	
+		else	direct = -1;
 	}
 	cout<<"Passing current for Loop#"<<currentNumber<<" : "<<impedence.length()<<endl;
 	for (int i = 0; i < currentPath::maxLoops; ++i)
@@ -834,7 +837,7 @@ void getDataAwesome()
 						connectionTemp.resis = connectionTemp.resis + parseAwesomeData(tempVec[j].substr(0,tempVec[j].length()-1));
 					break;
 				default: cout<<"error yo "<<tempVec[j][tempVec[j].length()-1]<<endl;
-			}	
+			}
 		}
 		connectionTemp.nodeFrom = atoi(tempVec[0].c_str());
 		connectionTemp.nodeTo = atoi(tempVec[1].c_str());
